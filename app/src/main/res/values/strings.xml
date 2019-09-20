@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Buber</string>
+    <string name="btn_signin">SIGN IN</string>
+    <string name="btn_signup">SIGN UP</string>
+    <string name="intro_app_name">B U B E R</string>
+    <string name="designation">D R I V E R</string>
+    <string name="bottom_text">Looking for the rider app?</string>
+</resources>

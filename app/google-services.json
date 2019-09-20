@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "336680386873",
+    "firebase_url": "https://gpride-buber.firebaseio.com",
+    "project_id": "gpride-buber",
+    "storage_bucket": "gpride-buber.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336680386873:android:d7195f8e6069ff97b8a8e8",
+        "android_client_info": {
+          "package_name": "com.gpridesolutions.buber"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "336680386873-luvl3qgvkhck8cm3kdb5ldcm7l8j3qfe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBM77hQYDQhNo21YjjLdcoOKGyF2YdFsfI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "336680386873-luvl3qgvkhck8cm3kdb5ldcm7l8j3qfe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
