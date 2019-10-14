@@ -8,4 +8,9 @@
 
     <color name="btn_signin">#1fbad6</color>
     <color name="btn_signup">#83638c</color>
+
+    <color name="baseReleaseColor">#212121</color>
+    <color name="baseFreeColor">#fafafa</color>
+    <color name="ballReleaseColor">#9f9f9e</color>
+
 </resources>

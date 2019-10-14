@@ -24,6 +24,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.gpridesolutions.buber.models.User;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
+import dmax.dialog.SpotsDialog;
 import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
@@ -168,19 +169,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
 
+
+
+                final SpotsDialog waitingDialog = new SpotsDialog(MainActivity.this);
+                waitingDialog.show();
+
                 //validationH
                 if(validate(email, "email") && validate(password, "password")){
                     auth.signInWithEmailAndPassword(email.getText().toString().trim(),
                             password.getText().toString().trim()).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
                         @Override
                         public void onSuccess(AuthResult authResult) {
-                            startActivity(new Intent(MainActivity.this, HomeActivity.class));
+                            waitingDialog.dismiss();
+                            //startActivity(new Intent(MainActivity.this, HomeActivity.class));
                             finish();
                         }
                     })
                             .addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
+                                    waitingDialog.dismiss();
                                     Snackbar.make(rootLayout, "Sign in failed "+e.getMessage(), Snackbar.LENGTH_LONG)
                                             .show();
                                 }

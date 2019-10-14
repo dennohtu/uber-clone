@@ -6,4 +6,5 @@
     <string name="designation">D R I V E R</string>
     <string name="bottom_text">Looking for the rider app?</string>
     <string name="title_activity_home">HomeActivity</string>
+    <string name="driver_descriptor">You</string>
 </resources>
