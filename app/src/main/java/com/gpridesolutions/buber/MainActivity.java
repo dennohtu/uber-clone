@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void onSuccess(AuthResult authResult) {
                             waitingDialog.dismiss();
-                            //startActivity(new Intent(MainActivity.this, HomeActivity.class));
+                            startActivity(new Intent(MainActivity.this, HomeActivity.class));
                             finish();
                         }
                     })

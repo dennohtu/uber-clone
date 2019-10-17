@@ -67,7 +67,13 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
         switch (requestCode){
             case MY_PERMISSION_REQUEST_CODE:
                 if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                    ///TOBECONTINUED
+                    if(checkPlayServices()){
+                        buildGoogleApiClient();
+                        createLocationRequest();
+                        if(locationSwitch.isChecked()){
+                            displayLocation();
+                        }
+                    }
                 }
         }
     }
