@@ -13,24 +13,40 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:weightSum="10"
-            android:padding="16dp">
+       <androidx.cardview.widget.CardView
+           android:layout_width="match_parent"
+           android:layout_height="wrap_content"
+           app:cardElevation="10dp"
+           android:layout_alignParentBottom="true">
 
-            <com.github.glomadrian.materialanimatedswitch.MaterialAnimatedSwitch
-                android:id="@+id/location_switch"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:icon_release="@drawable/location_off"
-                app:icon_press="@drawable/location_on"
-                app:base_release_color="@color/baseReleaseColor"
-                app:base_press_color="@color/baseFreeColor"
-                app:ball_release_color="@color/ballReleaseColor"
-                app:ball_press_color="@android:color/white"/>
+           <LinearLayout
+               android:orientation="horizontal"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:weightSum="10"
+               android:layout_margin="16dp">
 
-        </LinearLayout>
+               <com.github.glomadrian.materialanimatedswitch.MaterialAnimatedSwitch
+                   android:id="@+id/location_switch"
+                   android:layout_width="0dp"
+                   android:layout_height="wrap_content"
+                   app:icon_release="@drawable/location_off"
+                   app:icon_press="@drawable/location_on"
+                   app:base_release_color="@color/baseReleaseColor"
+                   app:base_press_color="@color/baseFreeColor"
+                   app:ball_release_color="@color/ballReleaseColor"
+                   app:ball_press_color="@android:color/white"/>
+
+               <Button
+                   android:id="@+id/btn_find_user"
+                   android:layout_weight="7"
+                   android:layout_width="0dp"
+                   android:text="Find Rider"
+                   android:layout_height="wrap_content"/>
+
+           </LinearLayout>
+
+       </androidx.cardview.widget.CardView>
+
     </RelativeLayout>
 </fragment>
