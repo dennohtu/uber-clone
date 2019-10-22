@@ -13,6 +13,8 @@ import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.animation.LinearInterpolator;
+import android.widget.Button;
+import android.widget.EditText;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
@@ -31,6 +33,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseError;
@@ -61,6 +64,21 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
 
     MaterialAnimatedSwitch locationSwitch;
     SupportMapFragment mapFragment;
+
+    //car animation
+    private List<LatLng> polyLineList;
+    private Marker pickupLocationMarker;
+    private float v;
+    private double lat, lng;
+    private Handler handler;
+    private LatLng startPosition, endPosition, currentPosition;
+    private int index, next;
+    private Button btnGo;
+    private EditText editPlace;
+    private String destination;
+    private PolylineOptions polylineOptions, blackPolyLineOption;
+    private Polyline blackPolyLine, greyPolyLine;
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
