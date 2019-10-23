@@ -6,12 +6,15 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.animation.ValueAnimator;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
@@ -25,20 +28,39 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.JointType;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.model.SquareCap;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.gpridesolutions.buber.common.Common;
+import com.gpridesolutions.buber.remote.IGoogleAPI;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class HomeActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener{
@@ -67,7 +89,7 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
 
     //car animation
     private List<LatLng> polyLineList;
-    private Marker pickupLocationMarker;
+    private Marker carMarker;
     private float v;
     private double lat, lng;
     private Handler handler;
@@ -79,6 +101,62 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
     private PolylineOptions polylineOptions, blackPolyLineOption;
     private Polyline blackPolyLine, greyPolyLine;
 
+    private IGoogleAPI mService;
+
+
+    Runnable drawPathRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if(index < polyLineList.size() - 1){
+                index++;
+                next = index+1;
+            }
+            if(index < polyLineList.size() - 1){
+                startPosition = polyLineList.get(index);
+                endPosition = polyLineList.get(next);
+            }
+
+            final ValueAnimator valueAnimator = ValueAnimator.ofFloat(0,1);
+            valueAnimator.setDuration(3000);
+            valueAnimator.setInterpolator(new LinearInterpolator());
+            valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    v = valueAnimator.getAnimatedFraction();
+                    lng = v*endPosition.longitude+(1-v)*startPosition.longitude;
+                    lat = v*endPosition.latitude+(1-v)*startPosition.latitude;
+                    LatLng newPos = new LatLng(lat, lng);
+                    carMarker.setPosition(newPos);
+                    carMarker.setAnchor(0.5f,0.5f);
+                    carMarker.setRotation(getBearing(startPosition, newPos));
+                    mMap.moveCamera(CameraUpdateFactory.newCameraPosition(
+                            new CameraPosition.Builder()
+                            .target(newPos)
+                            .zoom(15.5f)
+                            .build()
+                    ));
+                }
+            });
+            valueAnimator.start();
+            handler.postDelayed(this, 3000);
+        }
+    };
+
+    private float getBearing(LatLng startPosition, LatLng endPosition) {
+        double lat = Math.abs(startPosition.latitude - endPosition.latitude);
+        double lng = Math.abs(startPosition.longitude - endPosition.longitude);
+
+        if(startPosition.latitude < endPosition.latitude && startPosition.longitude < endPosition.longitude)
+            return (float)(Math.toDegrees(Math.atan(lng/lat)));
+        else if(startPosition.latitude >= endPosition.latitude && startPosition.longitude < endPosition.longitude)
+            return (float)((90 - Math.toDegrees(Math.atan(lng/lat))) + 90);
+        else if(startPosition.latitude >= endPosition.latitude && startPosition.longitude >= endPosition.longitude)
+            return (float)(Math.toDegrees(Math.atan(lng/lat)) + 180);
+        else if(startPosition.latitude < endPosition.latitude && startPosition.longitude >= endPosition.longitude)
+            return (float)((90 - Math.toDegrees(Math.atan(lng/lat))) + 270);
+        else
+            return -1;
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -116,8 +194,25 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
                     Snackbar.make(mapFragment.getView(), "You are online", Snackbar.LENGTH_SHORT).show();
                 }else{
                     stopLocationUpdates();
+                    mCurrent.remove();
+                    mMap.clear();
+                    handler.removeCallbacks(drawPathRunnable);
                     Snackbar.make(mapFragment.getView(), "You are offline", Snackbar.LENGTH_SHORT).show();
                 }
+            }
+        });
+
+        polyLineList = new ArrayList<>();
+        btnGo = findViewById(R.id.btn_go);
+        editPlace = findViewById(R.id.edit_place);
+        btnGo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = editPlace.getText().toString().trim();
+                destination = destination.replace(" ","+");
+                Log.d("BUBER_Driver_destn:", destination);
+
+                getDirection();
             }
         });
 
@@ -126,6 +221,138 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
         geoFire = new GeoFire(drivers);
 
         setUpLocation();
+
+        mService = Common.getGoogleAPI();
+    }
+
+    private void getDirection() {
+        currentPosition = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+        String requestAPI = null;
+        try{
+            requestAPI = "https://maps.googleapis.com/maps/api/directions/json?"+
+                    "mode=driving&"+
+                    "transit_routing_preferences_driving&"+
+                    "origin="+currentPosition.latitude+","+currentPosition.longitude+"&"+
+                    "key="+getResources().getString(R.string.google_maps_key);
+            Log.d("BUBER", requestAPI);
+            mService.getPath(requestAPI)
+                    .enqueue(new Callback<String>() {
+                        @Override
+                        public void onResponse(Call<String> call, Response<String> response) {
+                            try {
+                                JSONObject jsonObject = new JSONObject(response.body().toString());
+                                JSONArray jsonArray = jsonObject.getJSONArray("routes");
+                                for(int i=0; i<jsonArray.length(); i++){
+                                    JSONObject route = jsonArray.getJSONObject(i);
+                                    JSONObject poly = route.getJSONObject("overview_polyline");
+                                    String polyline = poly.getString("points");
+                                    polyLineList = decodePoly(polyline);
+                                }
+                                ///Adjust bounds
+                                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                                for(LatLng latLng: polyLineList){
+                                    builder.include(latLng);
+                                }
+                                LatLngBounds bounds = builder.build();
+                                CameraUpdate mCameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 2);
+                                mMap.animateCamera(mCameraUpdate);
+
+                                polylineOptions = new PolylineOptions();
+                                polylineOptions.color(Color.GRAY);
+                                polylineOptions.width(5);
+                                polylineOptions.startCap(new SquareCap());
+                                polylineOptions.endCap(new SquareCap());
+                                polylineOptions.jointType(JointType.ROUND);
+                                polylineOptions.addAll(polyLineList);
+                                greyPolyLine = mMap.addPolyline(polylineOptions);
+
+                                blackPolyLineOption = new PolylineOptions();
+                                blackPolyLineOption.color(Color.BLACK);
+                                blackPolyLineOption.width(5);
+                                blackPolyLineOption.startCap(new SquareCap());
+                                blackPolyLineOption.endCap(new SquareCap());
+                                blackPolyLineOption.jointType(JointType.ROUND);
+                                blackPolyLine = mMap.addPolyline(polylineOptions);
+
+                                mMap.addMarker(new MarkerOptions().position(polyLineList.get(polyLineList.size() - 1)))
+                                        .setTitle("Pickup Location");
+
+                                //Animation
+                                ValueAnimator polyLineAnimator = ValueAnimator.ofInt(0, 100);
+                                polyLineAnimator.setDuration(2000);
+                                polyLineAnimator.setInterpolator(new LinearInterpolator());
+                                polyLineAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                                    @Override
+                                    public void onAnimationUpdate(ValueAnimator animation) {
+                                        List<LatLng> points = greyPolyLine.getPoints();
+                                        int percentValue = (int) animation.getAnimatedValue();
+
+                                        int size = points.size();
+                                        int newPoints = (int) (size * (percentValue/100.0f));
+                                        List<LatLng> p = points.subList(0, newPoints);
+                                        blackPolyLine.setPoints(p);
+                                    }
+                                });
+                                polyLineAnimator.start();
+
+                                carMarker = mMap.addMarker(new MarkerOptions().position(currentPosition)
+                                        .flat(true)
+                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.car_icon)));
+                                handler = new Handler();
+                                index = -1;
+                                next = 1;
+                                handler.postDelayed(drawPathRunnable, 3000);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<String> call, Throwable t) {
+                            Snackbar.make(mapFragment.getView(), t.getMessage(), Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+        }catch(Exception e){
+
+        }
+    }
+
+    /**
+     * Method to decode polyline points
+     * Courtesy : jeffreysambells.com/2010/05/27/decoding-polylines-from-google-maps-direction-api-with-java
+     * */
+    private List<LatLng> decodePoly(String encoded) {
+
+        List<LatLng> poly = new ArrayList<LatLng>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            LatLng p = new LatLng((((double) lat / 1E5)),
+                    (((double) lng / 1E5)));
+            poly.add(p);
+        }
+
+        return poly;
     }
 
     private void setUpLocation() {
@@ -217,7 +444,7 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
 
                                 //move camera to current pos
                                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 15.0f));
-                                rotateMarker(mCurrent, -360, mMap);
+
                             }
                         });
             }
@@ -261,11 +488,11 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
-        /** Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));*/
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        mMap.setTrafficEnabled(false);
+        mMap.setIndoorEnabled(false);
+        mMap.setBuildingsEnabled(false);
+        mMap.getUiSettings().setZoomControlsEnabled(true);
     }
 
     @Override
