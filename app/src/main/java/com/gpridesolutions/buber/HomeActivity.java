@@ -14,10 +14,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
-import android.view.View;
 import android.view.animation.LinearInterpolator;
-import android.widget.Button;
-import android.widget.EditText;
+
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
@@ -25,9 +23,13 @@ import com.github.glomadrian.materialanimatedswitch.MaterialAnimatedSwitch;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -95,8 +97,8 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
     private Handler handler;
     private LatLng startPosition, endPosition, currentPosition;
     private int index, next;
-    private Button btnGo;
-    private EditText editPlace;
+    //private Button btnGo;
+    private PlaceAutocompleteFragment editPlace;
     private String destination;
     private PolylineOptions polylineOptions, blackPolyLineOption;
     private Polyline blackPolyLine, greyPolyLine;
@@ -196,23 +198,36 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
                     stopLocationUpdates();
                     mCurrent.remove();
                     mMap.clear();
-                    handler.removeCallbacks(drawPathRunnable);
+                    try {
+                        handler.removeCallbacks(drawPathRunnable);
+                    }catch (Exception e){
+                        Log.d("HOME ACTIVITY", "No handlers to remove callbacks from");
+                    }
                     Snackbar.make(mapFragment.getView(), "You are offline", Snackbar.LENGTH_SHORT).show();
                 }
             }
         });
 
         polyLineList = new ArrayList<>();
-        btnGo = findViewById(R.id.btn_go);
-        editPlace = findViewById(R.id.edit_place);
-        btnGo.setOnClickListener(new View.OnClickListener() {
+        //PlacesApi
+        editPlace = (PlaceAutocompleteFragment) getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+        editPlace.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
-            public void onClick(View v) {
-                destination = editPlace.getText().toString().trim();
-                destination = destination.replace(" ","+");
-                Log.d("BUBER_Driver_destn:", destination);
+            public void onPlaceSelected(Place place) {
+                if(locationSwitch.isChecked()){
+                    destination = place.getAddress().toString();
+                    destination = destination.replace(" ", ",");
 
-                getDirection();
+                    getDirection();
+                }else{
+                    Snackbar.make(mapFragment.getView(), "You are offline. Please change status to online",
+                            Snackbar.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onError(Status status) {
+                Snackbar.make(mapFragment.getView(), status.getStatusMessage(), Snackbar.LENGTH_LONG).show();
             }
         });
 
@@ -233,6 +248,7 @@ public class HomeActivity extends FragmentActivity implements OnMapReadyCallback
                     "mode=driving&"+
                     "transit_routing_preferences_driving&"+
                     "origin="+currentPosition.latitude+","+currentPosition.longitude+"&"+
+                    "destination="+destination+"&"+
                     "key="+getResources().getString(R.string.google_maps_key);
             Log.d("BUBER", requestAPI);
             mService.getPath(requestAPI)
